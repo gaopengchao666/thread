@@ -1,0 +1,14 @@
+1.ConcurrentHashMap1.8中是基于什么机制来保证线程安全性的
+putVal: 当table[index]为空时，通过cas添加元素，不为空时，给table[index]加	synchronized锁，将value追加到链表尾部
+resize：通过resizeStamp记录扩容前容量及并发扩容的线程数量。并发扩容的线程每个线程负责table一段区间的数据迁移，保证区间不重叠。采用高低链实现低链不动，高链迁移到newTable[index + n]。
+并发计算count：使用CounterCell[]数组记录count，累加数组及BASECOUNT得到最终元素个数，降低更新count的并发冲突程度。CounterCell[]采用随机数随机将更新count的线程分配到某个cell上，通过cas保证cell更新的线程安全
+初始化table: 用sizeCtl状态位标识是否有其他线程正在初始化table。如果有，当前线程释放CPU执行权，否则通过cas加乐观锁，然后初始化
+get：通过Unsafe.getObjectVolatile()及volatile变量的读写happens-before保证每次读到最新值
+2. ConcurrentHashMap通过get方法获取数据的时候，是否需要通过加锁来保证数据的可见性？为什么？
+不需要
+通过Unsafe.getObjectVolatile()及volatile变量的读写happens-before保证每次读到最新值
+3. ConcurrentHashMap1.7和ConcurrentHashMap1.8有哪些区别？
+1.7将table分成segment，对segment加锁，1.8对table每个位置加锁。锁粒度更小，冲突概率更低
+1.8引入红黑树，当链表长度超过8时，链表改为红黑树，增删改查效率由O(n)提升为O(log n)
+4. ConcurrentHashMap1.8为什么要引入红黑树？
+链表改为红黑树，增删改查效率由O(n)提升为O(log n)
